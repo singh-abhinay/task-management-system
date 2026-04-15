@@ -19,6 +19,7 @@ Route::get('/register', function () {
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout']);
+Route::put('/profile', [AuthController::class, 'updateProfile'])->middleware('auth');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
@@ -32,4 +33,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tasks/create', function () {
         return Inertia::render('Tasks/Create');
     });
+    Route::get('/profile', function () {
+        return Inertia::render('Profile');
+    })->name('profile');
 });

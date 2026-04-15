@@ -1,5 +1,5 @@
 import GuestLayout from "../layout/GuestLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { showToast } from "../store/slices/uiSlice";
 import { setUser, setLoading } from "../store/slices/authSlice";
@@ -8,7 +8,13 @@ import { router } from "@inertiajs/react";
 
 export default function Login() {
     const dispatch = useDispatch();
-    const { loading } = useSelector((state) => state.auth);
+    const { loading, user } = useSelector((state) => state.auth);
+
+    useEffect(() => {
+        if (user) {
+            router.visit("/dashboard");
+        }
+    }, [user]);
 
     const [formData, setFormData] = useState({
         email: "",
@@ -23,12 +29,10 @@ export default function Login() {
 
     const handleFormData = (e) => {
         const { name, value } = e.target;
-
         setFormData((prev) => ({
             ...prev,
             [name]: value,
         }));
-
         if (error[name]) {
             setError((prev) => ({
                 ...prev,
@@ -52,9 +56,6 @@ export default function Login() {
         if (!formData.password) {
             newErrors.password = "Password is required";
             isValid = false;
-        } else if (formData.password.length < 6) {
-            newErrors.password = "Password must be at least 6 characters";
-            isValid = false;
         }
 
         setError(newErrors);
@@ -63,12 +64,7 @@ export default function Login() {
 
     const loginFormSubmit = async (e) => {
         e.preventDefault();
-
-        setError({
-            email: "",
-            password: "",
-            general: "",
-        });
+        setError({ email: "", password: "", general: "" });
 
         if (!validateFormData()) return;
 
@@ -80,7 +76,6 @@ export default function Login() {
                 email: formData.email,
                 password: formData.password,
             });
-
             dispatch(
                 setUser({
                     user: response.data.user,
@@ -93,9 +88,9 @@ export default function Login() {
                     type: "success",
                 }),
             );
-
             router.visit("/dashboard");
         } catch (err) {
+            console.error("Login error:", err);
             const response = err.response;
 
             if (response?.data?.errors) {
@@ -105,13 +100,17 @@ export default function Login() {
                     password: errors.password ? errors.password[0] : "",
                     general: "",
                 });
+            } else if (response?.data?.message) {
+                setError({
+                    email: "",
+                    password: "",
+                    general: response.data.message,
+                });
             } else {
                 setError({
                     email: "",
                     password: "",
-                    general:
-                        response?.data?.message ||
-                        "Something went wrong. Please try again.",
+                    general: "Something went wrong. Please try again.",
                 });
             }
 
@@ -192,7 +191,7 @@ export default function Login() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3 bg-indigo-600 text-white rounded-xl"
+                        className="w-full py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50"
                     >
                         {loading ? "Signing in..." : "Sign In"}
                     </button>

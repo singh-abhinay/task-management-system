@@ -3,18 +3,32 @@ import { router } from "@inertiajs/react";
 import { useDispatch } from "react-redux";
 import { logout } from "../../store/slices/authSlice";
 import { showToast } from "../../store/slices/uiSlice";
+import { Link } from "@inertiajs/react";
+import api from "../../api/axios";
 
 export default function UserMenu({ user }) {
     const [isOpen, setIsOpen] = useState(false);
     const dispatch = useDispatch();
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        dispatch(logout());
-        dispatch(
-            showToast({ message: "Logged out successfully", type: "success" }),
-        );
-        router.visit("/login");
+    const handleLogout = async () => {
+        try {
+            await api.post("/logout");
+            localStorage.removeItem("user");
+            dispatch(logout());
+            dispatch(
+                showToast({
+                    message: "Logged out successfully",
+                    type: "success",
+                }),
+            );
+            router.visit("/login");
+        } catch (error) {
+            console.error("Logout error:", error);
+            // Force logout even if API fails
+            localStorage.removeItem("user");
+            dispatch(logout());
+            router.visit("/login");
+        }
     };
 
     return (
@@ -56,12 +70,14 @@ export default function UserMenu({ user }) {
                         <Link
                             href="/profile"
                             className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsOpen(false)}
                         >
                             Profile Settings
                         </Link>
                         <Link
                             href="/dashboard"
                             className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsOpen(false)}
                         >
                             Dashboard
                         </Link>
