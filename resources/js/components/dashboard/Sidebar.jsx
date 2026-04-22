@@ -1,6 +1,7 @@
 import SidebarMenuItem from "./SidebarMenuItem";
 
 export default function Sidebar({ isOpen, onToggle, currentPath }) {
+    console.log("Sidebar props:", { isOpen, currentPath });
     const menuItems = [
         { path: "/dashboard", name: "Dashboard", icon: "📊" },
         { path: "/tasks", name: "All Tasks", icon: "📋" },

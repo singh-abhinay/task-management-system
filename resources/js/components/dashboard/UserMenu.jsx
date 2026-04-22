@@ -24,7 +24,6 @@ export default function UserMenu({ user }) {
             router.visit("/login");
         } catch (error) {
             console.error("Logout error:", error);
-            // Force logout even if API fails
             localStorage.removeItem("user");
             dispatch(logout());
             router.visit("/login");

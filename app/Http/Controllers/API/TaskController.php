@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
 {
@@ -14,28 +15,46 @@ class TaskController extends Controller
     {
         $user = $request->user();
 
-        $ownTasks = Task::where('user_id', $user->id);
+        // Get per_page from request, default to 10
+        $perPage = (int) $request->get('per_page', 10);
 
-        $sharedTasks = Task::whereHas('sharedWith', function ($query) use ($user) {
+        // Get task IDs from both own tasks and shared tasks
+        $ownTaskIds = Task::where('user_id', $user->id)->pluck('id');
+
+        $sharedTaskIds = Task::whereHas('sharedWith', function ($query) use ($user) {
             $query->where('user_id', $user->id);
-        });
+        })->pluck('id');
 
-        $tasks = $ownTasks->union($sharedTasks)
-            ->when($request->search, function ($q, $search) {
-                return $q->where('title', 'like', "%{$search}%");
-            })
-            ->when($request->is_completed !== null, function ($q) use ($request) {
-                return $q->where('is_completed', $request->is_completed);
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        // Merge unique task IDs
+        $taskIds = $ownTaskIds->merge($sharedTaskIds)->unique();
 
+        // Build query with filters
+        $query = Task::whereIn('id', $taskIds);
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Apply completion status filter
+        if ($request->has('is_completed') && $request->is_completed !== null && $request->is_completed !== '') {
+            $query->where('is_completed', $request->is_completed);
+        }
+
+        // Order by created_at descending and paginate
+        $tasks = $query->orderByDesc('created_at')->paginate($perPage);
+
+        // Add permission to each task
         $tasks->getCollection()->transform(function ($task) use ($user) {
             $task->permission = $task->getPermissionForUser($user->id);
-
             return $task;
         });
 
+        // Return the paginator directly - Laravel will handle the JSON structure
         return response()->json($tasks);
     }
 

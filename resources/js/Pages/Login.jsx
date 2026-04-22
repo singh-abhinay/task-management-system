@@ -9,12 +9,12 @@ import { router } from "@inertiajs/react";
 export default function Login() {
     const dispatch = useDispatch();
     const { loading, user } = useSelector((state) => state.auth);
-
     useEffect(() => {
-        if (user) {
-            router.visit("/dashboard");
+        const serializedUser = localStorage.getItem("user");
+        if (user && serializedUser && serializedUser.length > 0) {
+            window.location.href = "/dashboard";
         }
-    }, [user]);
+    }, []);
 
     const [formData, setFormData] = useState({
         email: "",
@@ -71,11 +71,13 @@ export default function Login() {
         dispatch(setLoading(true));
 
         try {
+            console.log("Attempting to log in with:", formData);
             await api.get("/sanctum/csrf-cookie");
             const response = await api.post("/login", {
                 email: formData.email,
                 password: formData.password,
             });
+
             dispatch(
                 setUser({
                     user: response.data.user,
@@ -88,7 +90,8 @@ export default function Login() {
                     type: "success",
                 }),
             );
-            router.visit("/dashboard");
+
+            window.location.href = "/dashboard";
         } catch (err) {
             console.error("Login error:", err);
             const response = err.response;
